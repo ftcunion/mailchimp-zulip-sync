@@ -1,0 +1,2 @@
+# mailchimp-zulip-sync
+ 
