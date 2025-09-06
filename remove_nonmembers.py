@@ -6,33 +6,38 @@ from zulip import Client as ZulipClient
 from mailchimp_marketing import Client as MailchimpClient
 from mailchimp_marketing.api_client import ApiClientError
 
-# Read configuration file from config.ini
+# read configuration file from config.ini
 config = ConfigParser()
 config.read("config.ini")
 
-# Load configuration for Zulip and Mailchimp
+# load configuration for Zulip and Mailchimp
 zulip_client = ZulipClient(**config["zulip"])
 mailchimp_client = MailchimpClient()
 mailchimp_client.set_config(config["mailchimp"])
 
-# Fetch the list of users from Zulip
+# fetch the list of users from Zulip
 zulip_user_list = zulip_client.get_users()
 
 if not zulip_user_list["result"] == "success":
     raise ValueError(f"Failed to fetch users from Zulip: {zulip_user_list}")
 
 for user in zulip_user_list["members"]:
-    print(user["full_name"], user["email"])
-
-    # skip bots and anyone with an email on the ftcunion.org domain
+    # skip users who are already deactivated
+    if not user["is_active"]:
+        print(f"Skipping already deactivated user {user['full_name']}")
+        continue
+    # skip bots
     if user["is_bot"]:
         print("Skipping bot", user["full_name"])
         continue
-    elif user["delivery_email"].endswith("@ftcunion.org"):
-        print("Skipping ftcunion.org user", user["full_name"])
+    # skip anyone with an email on the ftcunion.org domain
+    if user["delivery_email"].endswith("@ftcunion.org"):
+        print(
+            f"Skipping ftcunion.org user {user['full_name']} <{user['delivery_email']}>"
+        )
         continue
-    elif user["delivery_email"]:
-        # Check if the user is in the Mailchimp list
+    # if not bypassed, check if the user is in the Mailchimp list
+    if user["delivery_email"]:
         print(
             f"Checking Mailchimp for user {user['full_name']} <{user['delivery_email']}>"
         )
@@ -51,6 +56,8 @@ for user in zulip_user_list["members"]:
 
         matching_members = mailchimp_response["exact_matches"]["members"]
 
+        # if the user is found in Mailchimp and is subscribed, skip removal
+        # otherwise, disable the user in Zulip
         if (
             isinstance(matching_members, list)
             and len(matching_members) > 0
@@ -59,13 +66,43 @@ for user in zulip_user_list["members"]:
             print("~~> User found in Mailchimp, not removing")
             print("")
             continue
-        else:
-            print(
-                f"~~> Removing user {user['full_name']} <{user['delivery_email']}> from Zulip"
+
+        print(
+            f"~~> Removing user {user['full_name']} <{user['delivery_email']}> from Zulip"
+        )
+
+        # attempt to remove the user from Zulip
+        remove_response = zulip_client.deactivate_user_by_id(user["user_id"])
+
+        # check if removal was successful and log/notify accordingly
+        if remove_response["result"] == "success":
+            print("~~> Successfully removed user")
+            # try to tell the #member_bot_log channel about the removal
+            zulip_client.send_message(
+                {
+                    "type": "channel",
+                    "to": "member_bot_log",
+                    "topic": "deactivations",
+                    "content": "Deactivated user "
+                    + user["full_name"]
+                    + f" <{user['delivery_email']}>",
+                }
             )
-            remove_response = zulip_client.deactivate_user_by_id(user["user_id"])
-            if remove_response["result"] == "success":
-                print("~~> Successfully removed user")
-            else:
-                print(f"~~> Failed to remove user: {remove_response}")
+        else:
+            print(f"~~> Failed to remove user: {remove_response}")
+            # try to tell the #member_bot_log channel about the removal failure
+            zulip_client.send_message(
+                {
+                    "type": "channel",
+                    "to": "member_bot_log",
+                    "topic": "errors",
+                    "content": "Failed to deactivate user "
+                    + user["full_name"]
+                    + f" <{user['delivery_email']}>: {remove_response}",
+                }
+            )
             print("")
+        continue
+
+    print(f"Skipping user {user['full_name']} with no delivery email")
+    print("")
