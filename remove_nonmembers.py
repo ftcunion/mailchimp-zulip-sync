@@ -113,7 +113,7 @@ for user in zulip_user_list["members"]:
                     + f" <{user['delivery_email']}>: {remove_response}",
                 }
             )
-            print("")
+        print("")
         continue
 
     print(f"Skipping user {user['full_name']} with no delivery email")
