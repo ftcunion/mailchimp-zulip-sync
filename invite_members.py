@@ -22,7 +22,11 @@ for line in stdin:
             "invitee_emails": email,
             "invite_expires_in_minutes": 60 * 24 * 10,  # 10 days
             "invite_as": 400,  # member
+            "stream_ids": [],  # no streams
+            "include_realm_default_subscriptions": True,
+            "notify_referrer_on_join": True,
         }
+        print(request)
         response = zulip_client.call_endpoint(
             url="/invites", method="POST", request=request
         )

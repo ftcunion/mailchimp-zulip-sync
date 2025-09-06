@@ -35,7 +35,7 @@ for user in zulip_user_list["members"]:
         print("Skipping bot", user["full_name"])
         continue
     # skip anyone with an email on the ftcunion.org domain
-    if user["delivery_email"].endswith("@ftcunion.org"):
+    if user["delivery_email"] and user["delivery_email"].endswith("@ftcunion.org"):
         print(
             f"Skipping ftcunion.org user {user['full_name']} <{user['delivery_email']}>"
         )
@@ -79,42 +79,40 @@ for user in zulip_user_list["members"]:
             print("")
             continue
 
-        print(
-            f"~~> Removing user {user['full_name']} <{user['delivery_email']}> from Zulip"
+    # remove the user if either they have no delivery email or are not found in Mailchimp
+    print(
+        f"~~> Removing user {user['full_name']} <{user['delivery_email']}> from Zulip"
+    )
+
+    # attempt to remove the user from Zulip
+    remove_response = zulip_client.deactivate_user_by_id(user["user_id"])
+
+    # check if removal was successful and log/notify accordingly
+    if remove_response["result"] == "success":
+        print("~~> Successfully removed user")
+        # try to tell the #member_bot_log channel about the removal
+        zulip_client.send_message(
+            {
+                "type": "channel",
+                "to": "member_bot_log",
+                "topic": "deactivations",
+                "content": "Deactivated user "
+                + user["full_name"]
+                + f" <{user['delivery_email']}>",
+            }
         )
-
-        # attempt to remove the user from Zulip
-        remove_response = zulip_client.deactivate_user_by_id(user["user_id"])
-
-        # check if removal was successful and log/notify accordingly
-        if remove_response["result"] == "success":
-            print("~~> Successfully removed user")
-            # try to tell the #member_bot_log channel about the removal
-            zulip_client.send_message(
-                {
-                    "type": "channel",
-                    "to": "member_bot_log",
-                    "topic": "deactivations",
-                    "content": "Deactivated user "
-                    + user["full_name"]
-                    + f" <{user['delivery_email']}>",
-                }
-            )
-        else:
-            print(f"~~> Failed to remove user: {remove_response}")
-            # try to tell the #member_bot_log channel about the removal failure
-            zulip_client.send_message(
-                {
-                    "type": "channel",
-                    "to": "member_bot_log",
-                    "topic": "errors",
-                    "content": "Failed to deactivate user "
-                    + user["full_name"]
-                    + f" <{user['delivery_email']}>: {remove_response}",
-                }
-            )
-        print("")
-        continue
-
-    print(f"Skipping user {user['full_name']} with no delivery email")
+    else:
+        print(f"~~> Failed to remove user: {remove_response}")
+        # try to tell the #member_bot_log channel about the removal failure
+        zulip_client.send_message(
+            {
+                "type": "channel",
+                "to": "member_bot_log",
+                "topic": "errors",
+                "content": "Failed to deactivate user "
+                + user["full_name"]
+                + f" <{user['delivery_email']}>: {remove_response}",
+            }
+        )
     print("")
+    continue
