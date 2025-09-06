@@ -18,7 +18,7 @@ mailchimp_client.set_config(config["mailchimp"])
 # fetch the list of users from Zulip
 zulip_user_list = zulip_client.get_users()
 
-if not zulip_user_list["result"] == "success":
+if zulip_user_list["result"] != "success":
     raise ValueError(f"Failed to fetch users from Zulip: {zulip_user_list}")
 
 for user in zulip_user_list["members"]:
