@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Script to remove users from the Zulip organization whose emails are not on the Mailchimp list."""
 
+import time
 from configparser import ConfigParser
 from zulip import Client as ZulipClient
 from mailchimp_marketing import Client as MailchimpClient
@@ -17,6 +18,9 @@ mailchimp_client.set_config(config["mailchimp"])
 
 # fetch the list of users from Zulip
 zulip_user_list = zulip_client.get_users()
+
+# create last_mailchimp_call variable to rate limit mailchimp api calls
+last_mailchimp_call = 0
 
 if zulip_user_list["result"] != "success":
     raise ValueError(f"Failed to fetch users from Zulip: {zulip_user_list}")
@@ -38,10 +42,18 @@ for user in zulip_user_list["members"]:
         continue
     # if not bypassed, check if the user is in the Mailchimp list
     if user["delivery_email"]:
+        # rate limit Mailchimp API calls to 1 per second
+        tdiff = time.time() - last_mailchimp_call
+        if tdiff < 1:
+            time.sleep(1 - tdiff)
+
+        # search for the user in Mailchimp
         print(
             f"Checking Mailchimp for user {user['full_name']} <{user['delivery_email']}>"
         )
         try:
+            # set last_mailchimp_call to the current unix time
+            last_mailchimp_call = time.time()
             mailchimp_response = mailchimp_client.searchMembers.search(
                 query=user["delivery_email"],
                 fields=[
