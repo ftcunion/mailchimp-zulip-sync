@@ -25,6 +25,12 @@ for line in stdin:
             "stream_ids": [],  # no streams
             "include_realm_default_subscriptions": True,
             "notify_referrer_on_join": True,
+            "welcome_message_custom_text": (
+                "Hi! Welcome to the FTC Union chat. Please do not set your "
+                "email to be hidden from administrators. We use it to verify "
+                "your membership in the union. Your account will be "
+                "automatically disabled if your email is inaccessible."
+            ),
         }
         print(request)
         response = zulip_client.call_endpoint(
