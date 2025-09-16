@@ -49,7 +49,8 @@ for user in zulip_user_list["members"]:
 
         # search for the user in Mailchimp
         print(
-            f"Checking Mailchimp for user {user['full_name']} <{user['delivery_email']}>"
+            f"Checking Mailchimp for user {user['full_name']} <{user['delivery_email']}>",
+            end="",
         )
         try:
             # set last_mailchimp_call to the current unix time
@@ -75,11 +76,11 @@ for user in zulip_user_list["members"]:
             and len(matching_members) > 0
             and matching_members[0]["status"] == "subscribed"
         ):
-            print("~~> User found in Mailchimp, not removing")
-            print("")
+            print(", [FOUND]")
             continue
 
     # remove the user if either they have no delivery email or are not found in Mailchimp
+    print(", [NOT FOUND]")
     print(
         f"~~> Removing user {user['full_name']} <{user['delivery_email']}> from Zulip"
     )
@@ -114,5 +115,4 @@ for user in zulip_user_list["members"]:
                 + f" <{user['delivery_email']}>: {remove_response}",
             }
         )
-    print("")
     continue
