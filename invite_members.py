@@ -1,4 +1,7 @@
-#!/usr/bin/env python3
+#!/bin/sh
+"true" '''\'
+exec "$(dirname "$(readlink -f "$0")")"/.venv/bin/python "$0" "$@"
+'''
 """Script to invite users to the Zulip organization given a list of email addresses in stdin."""
 
 from sys import stdin
@@ -20,7 +23,7 @@ for line in stdin:
         print(f"Inviting {email} to Zulip")
         request = {
             "invitee_emails": email,
-            "invite_expires_in_minutes": 60 * 24 * 10,  # 10 days
+            "invite_expires_in_minutes": 60 * 24 * 30,  # 30 days
             "invite_as": 400,  # member
             "stream_ids": [],  # no streams
             "include_realm_default_subscriptions": True,

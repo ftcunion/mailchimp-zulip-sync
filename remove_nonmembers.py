@@ -1,4 +1,7 @@
-#!/usr/bin/env python3
+#!/bin/sh
+"true" '''\'
+exec "$(dirname "$(readlink -f "$0")")"/.venv/bin/python "$0" "$@"
+'''
 """Script to remove users from the Zulip organization whose emails are not on the Mailchimp list."""
 
 import time
