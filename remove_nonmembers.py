@@ -4,15 +4,17 @@ exec "$(dirname "$(readlink -f "$0")")"/.venv/bin/python "$0" "$@"
 '''
 """Script to remove users from the Zulip organization whose emails are not on the Mailchimp list."""
 
+import pathlib
 import time
 from configparser import ConfigParser
 from zulip import Client as ZulipClient
 from mailchimp_marketing import Client as MailchimpClient
 from mailchimp_marketing.api_client import ApiClientError
 
-# read configuration file from config.ini
+# read configuration file from config.ini in the same directory as this script
+script_dir = pathlib.Path(__file__).parent.resolve()
 config = ConfigParser()
-config.read("config.ini")
+config.read(script_dir / "config.ini")
 
 # load configuration for Zulip and Mailchimp
 zulip_client = ZulipClient(**config["zulip"])
