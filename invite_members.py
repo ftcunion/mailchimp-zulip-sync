@@ -31,10 +31,10 @@ for line in stdin:
             "include_realm_default_subscriptions": True,
             "notify_referrer_on_join": True,
             "welcome_message_custom_text": (
-                "Hi! Welcome to the FTC Union chat. Please do not set your "
-                "email to be hidden from administrators. We use it to verify "
-                "your membership in the union. Your account will be "
-                "automatically disabled if your email is inaccessible."
+                "Hi! Welcome to the FTC Union chat. There is a hidden option "
+                "to hide your email from administrators. Please do not use it."
+                " We use emails to verify membership in the union. Accounts "
+                "with hidden emails will be automatically disabled."
             ),
         }
         print(request)
