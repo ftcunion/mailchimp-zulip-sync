@@ -86,9 +86,9 @@ for user in zulip_user_list["members"]:
             and matching_members[0]["status"] == "subscribed"
         ):
             print(", [FOUND]")
-            # add the Zulip merge field if not present
+            # add the ZULIP merge field if not present
             if (
-                "zulip" not in matching_members[0]["merge_fields"].keys()
+                "ZULIP" not in matching_members[0]["merge_fields"].keys()
                 or matching_members[0]["merge_fields"]["ZULIP"] != user["user_id"]
             ):
                 # create the request body to update the merge field
