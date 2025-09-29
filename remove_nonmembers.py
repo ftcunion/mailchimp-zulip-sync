@@ -60,12 +60,16 @@ for user in zulip_user_list["members"]:
         try:
             # set last_mailchimp_call to the current unix time
             last_mailchimp_call = time.time()
+            # retrieve the email, name, status, and merge fields of the user
             mailchimp_response = mailchimp_client.searchMembers.search(
                 query=user["delivery_email"],
                 fields=[
+                    "exact_matches.members.contact_id",
+                    "exact_matches.members.list_id",
                     "exact_matches.members.email_address",
                     "exact_matches.members.full_name",
                     "exact_matches.members.status",
+                    "exact_matches.members.merge_fields",
                 ],
             )
         except ApiClientError as error:
@@ -74,7 +78,7 @@ for user in zulip_user_list["members"]:
 
         matching_members = mailchimp_response["exact_matches"]["members"]
 
-        # if the user is found in Mailchimp and is subscribed, skip removal
+        # if the user is found in Mailchimp and is subscribed, skip removal and add zulip merge field if not present
         # otherwise, disable the user in Zulip
         if (
             isinstance(matching_members, list)
@@ -82,6 +86,37 @@ for user in zulip_user_list["members"]:
             and matching_members[0]["status"] == "subscribed"
         ):
             print(", [FOUND]")
+            # add the Zulip merge field if not present
+            if (
+                "zulip" not in matching_members[0]["merge_fields"].keys()
+                or matching_members[0]["merge_fields"]["ZULIP"] != user["user_id"]
+            ):
+                # create the request body to update the merge field
+                update_body = {
+                    "merge_fields": matching_members[0]["merge_fields"].copy()
+                }
+                # set the ZULIP merge field to the user's Zulip user ID
+                update_body["merge_fields"]["ZULIP"] = user["user_id"]
+
+                # update the member in Mailchimp
+                try:
+                    patch_response = mailchimp_client.lists.update_list_member(
+                        matching_members[0]["list_id"],
+                        matching_members[0]["contact_id"],
+                        update_body,
+                    )
+                except ApiClientError as error:
+                    print(f"Error setting ZULIP merge field: {error.text}")
+                    continue
+
+                if ("status" not in patch_response.keys()) or (
+                    not isinstance(patch_response["status"], int)
+                ):
+                    print(f"~~> Added ZULIP merge field for user {user['full_name']}")
+                else:
+                    print(
+                        f"~~> Failed to add ZULIP merge field for user {user['full_name']}: {patch_response}"
+                    )
             continue
 
     # remove the user if either they have no delivery email or are not found in Mailchimp
