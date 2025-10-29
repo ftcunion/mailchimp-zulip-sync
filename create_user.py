@@ -1,7 +1,7 @@
 #!/bin/sh
-"true" """\'
+"true" '''\'
 exec "$(dirname "$(readlink -f "$0")")"/.venv/bin/python "$0" "$@"
-"""
+'''
 """Script to forcibly create users in the Zulip organization given a list of email addresses in stdin."""
 
 import secrets
